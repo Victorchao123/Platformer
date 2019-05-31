@@ -10,7 +10,7 @@ WIDTH = 800
 HEIGHT = 680
 FPS = 60
 vec = pygame.math.Vector2
-
+    
 #Colours
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -19,6 +19,7 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 bg = pygame.image.load("bg.jpg")
+
 
 #Player Properties
 ACCELERATION = 0.8
@@ -30,12 +31,11 @@ PLATFORMS = [(0, HEIGHT - 40, WIDTH, 40),
 (WIDTH / 2 - 50, HEIGHT * 3 / 4, 100, 20),
 (125, HEIGHT - 350, 100, 20), (350, 200, 100, 20), (530, HEIGHT - 350, 100, 20)]
 
-#Sign
-SIGN = [(WIDTH / 2, HEIGHT / 2)]
 #Background Music
 pygame.mixer.init()
 pygame.mixer.music.load("HeroicDemise.mp3")
 pygame.mixer.music.play(-1, 0)
+
 
 #Initialization
 pygame.init()
@@ -45,20 +45,10 @@ pygame.display.set_caption("Platformer")
 clock = pygame.time.Clock()
 
 
-'''
-Main Map Initialization
-map_width = 3000
-map_height = 600
-map = pygame.Surface((map_width, map_height))
-map = map.convert()
-def drawmap():
-'''
-
 #Font Initialization
-font_name = pygame.font.match_font('ailerons-regular')
 def draw_text(surf, text, size, x, y):
-    font = pygame.font.Font(font_name, size)
-    text_surface = font.render(text, True, RED)
+    font = pygame.font.Font('SuperMario256.ttf', size)
+    text_surface = font.render(text, True, BLACK)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
@@ -145,7 +135,7 @@ class Mob(pygame.sprite.Sprite):
         self.distance_above_player = 1
         self.speed = 5
     def pos_towards_player(self, player_rect):
-        #
+        #Taken from Somewhere, trying to find source
         c = math.sqrt((player_rect.x - self.rect.x) ** 2 + (player_rect.y - self.distance_above_player - self.rect.y) ** 2)
         try:
             x = (player_rect.x - self.rect.x) / c
@@ -219,24 +209,31 @@ class RightBullet(pygame.sprite.Sprite):
         self.rect.x += self.speedx
         if self.rect.right > WIDTH:
             self.kill()
-class Yeeld(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((100, 100))
-        self.image = pygame.image.load("yield.png").convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.cur = pygame.time.get_ticks()
-        self.ti = 100
+
+class ScrollBackground(pygame.sprite.Sprite):
+    def __init__(self):
+        super(ScrollBackground, self).__init__()
+        self.images = []
+        for i in range(1, 181):
+            self.images.append(pygame.image.load('ScrollFrames/backscroll' + str(i) +'.png'))
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = pygame.Rect(0, 0, 800, 680)
+    def update(self):
+        self.index += 1
+        if self.index >= len(self.images):
+            self.index = 0
+        self.image = self.images[self.index]
+
+#Background Sprite
+scroll_background = ScrollBackground()
+scrolls = pygame.sprite.Group(scroll_background)
+clock = pygame.time.Clock()
+
 
 #Start Screen
 def start_screen():
     pygame.mixer.music.stop()
-    screen.fill(BLACK)
-    draw_text(screen, "Platformer", 64, WIDTH / 2, HEIGHT / 4)
-    draw_text(screen, "WASD to move, Space to shoot", 22, WIDTH / 2, HEIGHT / 2)
-    draw_text(screen, "Press any key to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
     pygame.display.flip()
     pygame.mixer.init()
     pygame.mixer.music.load("HeroicDemise.mp3")
@@ -244,12 +241,18 @@ def start_screen():
     prompt = True
     while prompt:
         clock.tick(FPS)
+        scrolls.update()
+        scrolls.draw(screen)
+        draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
+        draw_text(screen, "WASD to move, Space to shoot, F to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "Press any key to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
+        pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
             if event.type == pygame.KEYUP:
                 prompt = False
-
+    
 #Sounds and Background
 jump = pygame.mixer.Sound('Jumps.wav')
 land = pygame.mixer.Sound('jumpland.wav')
@@ -268,7 +271,6 @@ while running:
         bullets = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
         meteors = pygame.sprite.Group()
-        yeelds = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         for plat in PLATFORMS:
@@ -291,19 +293,13 @@ while running:
             if event.key == pygame.K_w:
                 player.jump()
                 pygame.mixer.Sound.play(jump)
-            if event.key == pygame.K_f:
+            if event.key == pygame.K_e:
                 player.toggle()
             if event.key == pygame.K_SPACE:
                 player.shoot()
                 pygame.mixer.Sound.play(shoot)
 
     if (score > 0) and (score % 10 == 0):
-        naw = pygame.time.get_ticks()
-        curTime = 30
-        ye = Yeeld(WIDTH / 2 - 50, HEIGHT / 2)
-        all_sprites.add(ye)
-        yeelds.add(ye)
-        
         r = Meteor()
         all_sprites.add(r)
         meteors.add(r)
