@@ -127,13 +127,13 @@ class Mob(pygame.sprite.Sprite):
         self.image = pygame.Surface((30, 40))
         self.image = pygame.image.load("ghost.png").convert_alpha()
         self.rect = self.image.get_rect()
-        self.rect.centerx = WIDTH / 2
+        self.rect.centerx = random.randint(0, WIDTH)
         self.rect.bottom = 0
         self.pos = vec(WIDTH / 2, 0)
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
         self.distance_above_player = 1
-        self.speed = 5
+        self.speed = random.randrange(2, 5)
     def pos_towards_player(self, player_rect):
         #Taken from Somewhere, trying to find source
         c = math.sqrt((player_rect.x - self.rect.x) ** 2 + (player_rect.y - self.distance_above_player - self.rect.y) ** 2)
@@ -244,7 +244,7 @@ def start_screen():
         scrolls.update()
         scrolls.draw(screen)
         draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
-        draw_text(screen, "WASD to move, Space to shoot, F to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "WASD to move, Space to shoot, E to switch direction, F to calibrate weapon", 22, WIDTH / 2, HEIGHT / 2)
         draw_text(screen, "Press any key to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
         pygame.display.flip()
         for event in pygame.event.get():
