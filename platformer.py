@@ -18,8 +18,9 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
+#Spare Images
 bg = pygame.image.load("bg.jpg")
-
+start2 = pygame.image.load("desert.jpg")
 
 #Player Properties
 ACCELERATION = 0.8
@@ -67,7 +68,7 @@ class Player(pygame.sprite.Sprite):
         self.acc = vec(0, 0)
         self.shoot_delay = 150
         self.last_shot = pygame.time.get_ticks()
-        self.leftRight = 0
+        self.leftRight = 1
         self.player_left = pygame.image.load("soldier.png").convert_alpha()
         self.player_right = pygame.transform.flip(self.image, True, False)
     def jump(self):
@@ -124,16 +125,18 @@ class Player(pygame.sprite.Sprite):
 class Mob(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((30, 40))
-        self.image = pygame.image.load("ghost.png").convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.centerx = random.randint(0, WIDTH)
-        self.rect.bottom = 0
         self.pos = vec(WIDTH / 2, 0)
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
         self.distance_above_player = 1
         self.speed = random.randrange(2, 5)
+        self.images = []
+        self.images.append(pygame.image.load("fly1.png"))
+        self.images.append(pygame.image.load("fly2.png"))
+        self.index = 0 
+        self.image = self.images[self.index]
+        self.rect = pygame.Rect(random.randint(0, WIDTH), 0, 80, 80)
+        self.count = 0
     def pos_towards_player(self, player_rect):
         #Taken from Somewhere, trying to find source
         c = math.sqrt((player_rect.x - self.rect.x) ** 2 + (player_rect.y - self.distance_above_player - self.rect.y) ** 2)
@@ -152,6 +155,13 @@ class Mob(pygame.sprite.Sprite):
         if new_pos:
             self.rect.x, self.rect.y = (self.rect.x + new_pos[0] * self.speed, self.rect.y +
             new_pos[1] * self.speed)
+        self.count += 1
+        if self.count > 20:
+            self.index += 1
+            self.count = 0
+        if self.index >= len(self.images):
+            self.index = 0
+        self.image = self.images[self.index]
 
 class Meteor(pygame.sprite.Sprite):
     def __init__(self):
@@ -225,13 +235,14 @@ class ScrollBackground(pygame.sprite.Sprite):
             self.index = 0
         self.image = self.images[self.index]
 
+
 #Background Sprite
 scroll_background = ScrollBackground()
 scrolls = pygame.sprite.Group(scroll_background)
 clock = pygame.time.Clock()
 
 
-#Start Screen
+#Level 1 Start Screen
 def start_screen():
     pygame.mixer.music.stop()
     pygame.display.flip()
@@ -244,7 +255,8 @@ def start_screen():
         scrolls.update()
         scrolls.draw(screen)
         draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
-        draw_text(screen, "WASD to move, Space to shoot, E to switch direction, F to calibrate weapon", 22, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "Level One", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
         draw_text(screen, "Press any key to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
         pygame.display.flip()
         for event in pygame.event.get():
@@ -252,6 +264,30 @@ def start_screen():
                 pygame.quit()
             if event.type == pygame.KEYUP:
                 prompt = False
+
+#Level 2 Start Screen
+def level_2start():
+    pygame.mixer.music.stop()
+    pygame.display.flip()
+    pygame.mixer.init()
+    pygame.mixer.music.load("Riseofspirit.mp3")
+    pygame.mixer.music.play(-1, 0)
+    propt = True
+    while propt:
+        clock.tick(FPS)
+        screen.blit(start2, [0, 0])
+        draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
+        draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "Level Two", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
+        draw_text(screen, "Press Space to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    propt = False
+
     
 #Sounds and Background
 jump = pygame.mixer.Sound('Jumps.wav')
@@ -261,11 +297,32 @@ background = pygame.image.load("bg.jpg")
 #Main Game Loop
 game_over = True
 running = True
+CurrentLevel = 1
 while running:
     if game_over:
         start_screen()
         game_over = False
         #Updating Sprites
+        all_sprites = pygame.sprite.Group()
+        platforms = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        meteors = pygame.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        for plat in PLATFORMS:
+            p = Platform(*plat)
+            all_sprites.add(p)
+            platforms.add(p)
+        for i in range(4):
+            m = Mob()
+            all_sprites.add(m)
+            mobs.add(m)
+        score = 0
+    if (score > 25):
+        CurrentLevel += 1
+        level_2start()
+        game_over = False
         all_sprites = pygame.sprite.Group()
         platforms = pygame.sprite.Group()
         bullets = pygame.sprite.Group()
