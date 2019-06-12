@@ -4,6 +4,8 @@ import random
 import time
 import math
 import sys
+import moviepy
+from moviepy.editor import * 
 
 #PlayerView
 WIDTH = 800
@@ -17,10 +19,12 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+GRAY = (105, 105, 105)
 
 #Spare Images
-bg = pygame.image.load("bg.jpg")
+bg = pygame.image.load("Backofground.png")
 start2 = pygame.image.load("desert.jpg")
+lev2 = pygame.image.load("desertback.png")
 
 #Player Properties
 ACCELERATION = 0.8
@@ -28,9 +32,10 @@ FRICTION = -0.12
 GRAVITY = 0.8
 
 #Platforms
-PLATFORMS = [(0, HEIGHT - 40, WIDTH, 40),
-(WIDTH / 2 - 50, HEIGHT * 3 / 4, 100, 20),
+PLATFORMS = [(WIDTH / 2 - 50, HEIGHT * 3 / 4, 100, 20),
 (125, HEIGHT - 350, 100, 20), (350, 200, 100, 20), (530, HEIGHT - 350, 100, 20)]
+PLATDORMS = [(120, 260, 100, 20), (120, 460, 100, 20), (660, 260, 100, 20), (660, 460, 100, 20)]
+GROUNDS = [(0, HEIGHT - 40, WIDTH, 40)]
 
 #Background Music
 pygame.mixer.init()
@@ -67,6 +72,7 @@ class Player(pygame.sprite.Sprite):
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
         self.shoot_delay = 150
+        self.hit_delay = 120
         self.last_shot = pygame.time.get_ticks()
         self.leftRight = 1
         self.player_left = pygame.image.load("soldier.png").convert_alpha()
@@ -75,6 +81,8 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += 1
         self.rect.x -= 1
         if pygame.sprite.spritecollide(player, platforms, False):
+            self.vel.y = -20
+        if pygame.sprite.spritecollide(player, grounds, False):
             self.vel.y = -20
     def toggle(self):
         if self.leftRight == 0:
@@ -102,6 +110,24 @@ class Player(pygame.sprite.Sprite):
                 bwllet.rect.y = player.rect.y
                 all_sprites.add(bwllet)
                 bullets.add(bwllet)
+
+    def punch(self):
+        pounch = pygame.time.get_ticks()
+        if self.leftRight == 1:
+            if pounch - self.last_shot > self.hit_delay:
+                fist = Fist(self.rect.centerx, self.rect.left)
+                fist.rect.x = player.rect.x - 20
+                fist.rect.y = player.rect.y
+                all_sprites.add(fist)
+                fists.add(fist)
+        else:
+            if pounch - self.last_shot > self.hit_delay:
+                fist = Fist(self.rect.centerx, self.rect.right)
+                fist.rect.x = player.rect.x + 50
+                fist.rect.y = player.rect.y
+                all_sprites.add(fist)
+                fists.add(fist)
+
 
 
     def update(self):
@@ -163,6 +189,40 @@ class Mob(pygame.sprite.Sprite):
             self.index = 0
         self.image = self.images[self.index]
 
+class Dino(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.count = 0
+        self.images = []
+        self.images.append(pygame.image.load("triceratops1.png"))
+        self.images.append(pygame.image.load("triceratops2.png"))
+        self.images.append(pygame.image.load("triceratops3.png"))
+        self.images.append(pygame.image.load("triceratops4.png"))
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.x = 0 - 10
+        self.rect.y = HEIGHT - 100
+        self.coun = 0 
+
+    def update(self):
+        self.count += 1
+        self.coun += 1
+        if self.coun > 5:
+            self.index += 1
+            self.coun = 0
+            self.speed = 4
+            self.rect.x += self.speed
+        if self.index >= len(self.images):
+            self.index = 0
+        self.image = self.images[self.index]
+        if self.rect.x == 402:
+            d = Dino()
+            all_sprites.add(d)
+            dinos.add(d)
+        if self.rect.x > WIDTH:
+            self.kill()
+
 class Meteor(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -185,7 +245,16 @@ class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, w, h):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((w, h))
-        self.image.fill(BLACK)
+        self.image = pygame.image.load("formplat.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+class Ground(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((w, h))
+        self.image.fill(GRAY)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -220,6 +289,24 @@ class RightBullet(pygame.sprite.Sprite):
         if self.rect.right > WIDTH:
             self.kill()
 
+class Fist(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((30, 30))
+        self.image = pygame.image.load("invis.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.lasthit = pygame.time.get_ticks()
+        self.rect.bottom = x
+        self.rect.centerx = x
+        self.speedx = 0
+        self.fistdelay = 100
+
+    def update(self):
+        noww = pygame.time.get_ticks()
+        if noww - self.lasthit > self.fistdelay:
+            self.lasthit = noww
+            self.kill()
+
 class ScrollBackground(pygame.sprite.Sprite):
     def __init__(self):
         super(ScrollBackground, self).__init__()
@@ -235,6 +322,28 @@ class ScrollBackground(pygame.sprite.Sprite):
             self.index = 0
         self.image = self.images[self.index]
 
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = pygame.image.load("splat.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.lastupdate = now
+            self.frame += 1
+            self.kill()
+        else:
+            center = self.rect.center
+            self.image = pygame.image.load("splat.png").convert_alpha()
+            self.rect = self.image.get_rect()
+            self.rect.center = center
 
 #Background Sprite
 scroll_background = ScrollBackground()
@@ -246,24 +355,27 @@ clock = pygame.time.Clock()
 def start_screen():
     pygame.mixer.music.stop()
     pygame.display.flip()
+    clip = VideoFileClip('Cutsene.mp4')
+    clip.preview()
     pygame.mixer.init()
     pygame.mixer.music.load("HeroicDemise.mp3")
     pygame.mixer.music.play(-1, 0)
     prompt = True
     while prompt:
-        clock.tick(FPS)
-        scrolls.update()
-        scrolls.draw(screen)
-        draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
-        draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
-        draw_text(screen, "Level One", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
-        draw_text(screen, "Press any key to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
-        pygame.display.flip()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            if event.type == pygame.KEYUP:
-                prompt = False
+            clock.tick(FPS)
+            scrolls.update()
+            scrolls.draw(screen)
+            draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
+            draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+            draw_text(screen, "Level One", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
+            draw_text(screen, "Press Enter to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
+            pygame.display.flip()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_RETURN:     
+                        prompt = False
 
 #Level 2 Start Screen
 def level_2start():
@@ -279,7 +391,7 @@ def level_2start():
         draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
         draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
         draw_text(screen, "Level Two", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
-        draw_text(screen, "Press Space to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
+        draw_text(screen, "Press Enter to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
         pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -287,6 +399,8 @@ def level_2start():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     propt = False
+                    screen.blit(lev2, [0, 0])
+                    pygame.display.flip()
 
     
 #Sounds and Background
@@ -294,20 +408,24 @@ jump = pygame.mixer.Sound('Jumps.wav')
 land = pygame.mixer.Sound('jumpland.wav')
 shoot = pygame.mixer.Sound('shoot.wav')
 background = pygame.image.load("bg.jpg")
+#Extra Variables
+concount = 0
 #Main Game Loop
 game_over = True
 running = True
 CurrentLevel = 1
 while running:
-    if game_over:
+    if (game_over) and (CurrentLevel == 1):
         start_screen()
         game_over = False
         #Updating Sprites
         all_sprites = pygame.sprite.Group()
         platforms = pygame.sprite.Group()
         bullets = pygame.sprite.Group()
+        grounds = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
         meteors = pygame.sprite.Group()
+        fists = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         for plat in PLATFORMS:
@@ -318,26 +436,68 @@ while running:
             m = Mob()
             all_sprites.add(m)
             mobs.add(m)
+        for gro in GROUNDS:
+            g = Ground(*gro)
+            all_sprites.add(g)
+            grounds.add(g)
         score = 0
-    if (score > 25):
+    if (score > 6) and (CurrentLevel == 1):
         CurrentLevel += 1
         level_2start()
         game_over = False
         all_sprites = pygame.sprite.Group()
         platforms = pygame.sprite.Group()
+        grounds = pygame.sprite.Group()
         bullets = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
         meteors = pygame.sprite.Group()
+        dinos = pygame.sprite.Group()
+        fists = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
-        for plat in PLATFORMS:
+        for plat in PLATDORMS:
             p = Platform(*plat)
             all_sprites.add(p)
             platforms.add(p)
-        for i in range(8):
+        for i in range(4):
             m = Mob()
             all_sprites.add(m)
             mobs.add(m)
+        for gro in GROUNDS:
+            g = Ground(*gro)
+            all_sprites.add(g)
+            grounds.add(g)
+        d = Dino()
+        all_sprites.add(d)
+        dinos.add(d)
+    if (game_over) and (CurrentLevel == 2):
+        level_2start()
+        game_over = False
+        all_sprites = pygame.sprite.Group()
+        platforms = pygame.sprite.Group()
+        grounds = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        meteors = pygame.sprite.Group()
+        fists = pygame.sprite.Group()
+        dinos = pygame.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        for plat in PLATDORMS:
+            p = Platform(*plat)
+            all_sprites.add(p)
+            platforms.add(p)
+        for i in range(4):
+            m = Mob()
+            all_sprites.add(m)
+            mobs.add(m)
+        for gro in GROUNDS:
+            g = Ground(*gro)
+            all_sprites.add(g)
+            grounds.add(g)
+        d = Dino()
+        all_sprites.add(d)
+        dinos.add(d)
         score = 0
 
     clock.tick(FPS)
@@ -355,6 +515,8 @@ while running:
             if event.key == pygame.K_SPACE:
                 player.shoot()
                 pygame.mixer.Sound.play(shoot)
+            if event.key == pygame.K_f:
+                player.punch()
 
     if (score > 0) and (score % 10 == 0):
         r = Meteor()
@@ -370,13 +532,23 @@ while running:
             player.pos.y = hits[0].rect.top
             player.vel.y = 0
 
+    if player.vel.y > 0:
+        hits = pygame.sprite.spritecollide(player, grounds, False)
+        if hits:
+            player.pos.y = hits[0].rect.top 
+            player.vel.y = 0
+
     hits = pygame.sprite.groupcollide(bullets, mobs, True, True)
     for hit in hits:
         score += 1
         m = Mob()
         all_sprites.add(m)
+        expl = Explosion(hit.rect.center, 'lg')
+        all_sprites.add(expl)
         all_sprites.update()
         mobs.add(m)
+
+
     hits = pygame.sprite.spritecollide(player, mobs, True)
     if hits:
         game_over = True
@@ -385,10 +557,22 @@ while running:
         game_over = True
     hits = pygame.sprite.groupcollide(meteors, platforms, True, False)
 
+    hits = pygame.sprite.groupcollide(meteors, grounds, True, False)
+
+    hits = pygame.sprite.groupcollide(fists, mobs, True, True)
+    for hit in hits:
+        score += 1
+        m = Mob()
+        all_sprites.add(m)
+        all_sprites.update()
+        mobs.add(m)
 
 
     screen.fill(WHITE)
-    screen.blit(bg, [0, 0])
+    if CurrentLevel == 1:
+        screen.blit(bg, [0, 0])
+    if CurrentLevel == 2:
+        screen.blit(lev2, [0, 0])
     all_sprites.draw(screen)
     draw_text(screen, str(score), 50, WIDTH / 2, 10)
     pygame.display.flip()
