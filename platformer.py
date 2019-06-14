@@ -1,3 +1,7 @@
+#The basic Class framework that I used in this program was learnt from kidscancode.org
+#Following the Player was NOT MY IMPLEMENTATION. I CAN'T FIND THE WEBSITE WHERE I FOUND IT
+#Random Movement was found here: https://opensource.com/article/18/5/pygame-enemy
+
 #Importing Modules
 import pygame
 import random
@@ -5,7 +9,10 @@ import time
 import math
 import sys
 import moviepy
+#This module has not been used
+import pyganim
 from moviepy.editor import * 
+from time import sleep
 
 #PlayerView
 WIDTH = 800
@@ -21,10 +28,6 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 GRAY = (105, 105, 105)
 
-#Spare Images
-bg = pygame.image.load("Backofground.png")
-start2 = pygame.image.load("desert.jpg")
-lev2 = pygame.image.load("desertback.png")
 
 #Player Properties
 ACCELERATION = 0.8
@@ -36,7 +39,8 @@ PLATFORMS = [(WIDTH / 2 - 50, HEIGHT * 3 / 4, 100, 20),
 (125, HEIGHT - 350, 100, 20), (350, 200, 100, 20), (530, HEIGHT - 350, 100, 20)]
 PLATDORMS = [(120, 260, 100, 20), (120, 460, 100, 20), (660, 260, 100, 20), (660, 460, 100, 20)]
 GROUNDS = [(0, HEIGHT - 40, WIDTH, 40)]
-
+PLATHORMS = [(120, 260, 100, 20), (120, 460, 100, 20), (400, 260, 100, 20), (400, 460, 100, 20),
+(660, 260, 100, 20), (660, 460, 100, 20)]
 #Background Music
 pygame.mixer.init()
 pygame.mixer.music.load("HeroicDemise.mp3")
@@ -49,6 +53,10 @@ pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Platformer")
 clock = pygame.time.Clock()
+
+punchAnim = pyganim.PygAnimation([('lvl3graphics/punch1.png', 100), ('lvl3graphics/punch2.png', 100),
+('lvl3graphics/punch3.png', 100), ('lvl3graphics/hoverboard.png', 100)])
+punchAnim.play()
 
 
 #Font Initialization
@@ -63,8 +71,13 @@ def draw_text(surf, text, size, x, y):
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((30, 60))
-        self.image = pygame.image.load("soldier.png").convert_alpha()
+        self.images = []
+        self.images.append(pygame.image.load("lvl3graphics/hoverboard.png"))
+        self.images.append(pygame.image.load("lvl3graphics/punch1.png"))
+        self.images.append(pygame.image.load("lvl3graphics/punch2.png"))
+        self.images.append(pygame.image.load("lvl3graphics/punch3.png"))
+        self.index = 0
+        self.image = self.images[self.index]
         self.rect = self.image.get_rect()
         self.rect.centerx = WIDTH / 2
         self.rect.bottom = HEIGHT
@@ -75,8 +88,13 @@ class Player(pygame.sprite.Sprite):
         self.hit_delay = 120
         self.last_shot = pygame.time.get_ticks()
         self.leftRight = 1
-        self.player_left = pygame.image.load("soldier.png").convert_alpha()
+        self.punch_right = pygame.transform.flip(pygame.image.load("lvl3graphics/punch3.png").convert_alpha(), True, False)
+        self.player_left = pygame.image.load("lvl3graphics/hoverboard.png").convert_alpha()
         self.player_right = pygame.transform.flip(self.image, True, False)
+        self.time = pygame.time.get_ticks()
+        self.count = 200
+        self.track = 0
+        
     def jump(self):
         self.rect.x += 1
         self.rect.x -= 1
@@ -95,6 +113,7 @@ class Player(pygame.sprite.Sprite):
     def shoot(self):
         now = pygame.time.get_ticks()
         if self.leftRight == 1:
+            self.image = self.player_left
             if now - self.last_shot > self.shoot_delay:
                 self.last_shot = now
                 bullet = LeftBullet(self.rect.centerx, self.rect.left)
@@ -103,6 +122,7 @@ class Player(pygame.sprite.Sprite):
                 all_sprites.add(bullet)
                 bullets.add(bullet)
         else:
+            self.image = self.player_right
             if now - self.last_shot > self.shoot_delay:
                 self.last_shot = now
                 bwllet = RightBullet(self.rect.centerx, self.rect.left)
@@ -114,6 +134,7 @@ class Player(pygame.sprite.Sprite):
     def punch(self):
         pounch = pygame.time.get_ticks()
         if self.leftRight == 1:
+            self.image = self.images[3]
             if pounch - self.last_shot > self.hit_delay:
                 fist = Fist(self.rect.centerx, self.rect.left)
                 fist.rect.x = player.rect.x - 20
@@ -121,6 +142,7 @@ class Player(pygame.sprite.Sprite):
                 all_sprites.add(fist)
                 fists.add(fist)
         else:
+            self.image = self.punch_right
             if pounch - self.last_shot > self.hit_delay:
                 fist = Fist(self.rect.centerx, self.rect.right)
                 fist.rect.x = player.rect.x + 50
@@ -223,6 +245,83 @@ class Dino(pygame.sprite.Sprite):
         if self.rect.x > WIDTH:
             self.kill()
 
+class TRex(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = []
+        self.images.append(pygame.image.load("lvl3graphics/trex1.png"))
+        self.images.append(pygame.image.load("lvl3graphics/trex2.png"))
+        self.images.append(pygame.image.load("lvl3graphics/trex3.png"))
+        self.images.append(pygame.image.load("lvl3graphics/trex4.png"))
+        self.count = 0
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.x = WIDTH / 2
+        self.rect.y = HEIGHT - 300
+        self.distance = 80
+        self.speed = 4
+        self.counter = 0
+        self.lastlaunch = pygame.time.get_ticks()
+        self.fire_delay = 3000
+
+    def update(self):
+        if self.counter >= 0 and self.counter <= self.distance:
+            self.rect.x += self.speed
+            self.index += 1
+        elif self.counter >= self.distance and self.counter <= self.distance * 2:
+            self.rect.x -= self.speed
+            self.index += 1
+        else:
+            self.counter = 0
+        self.counter += 1
+        if self.index >= len(self.images):
+            self.index = 0
+        self.image = self.images[self.index]
+        now = pygame.time.get_ticks()
+        if now - self.lastlaunch > self.fire_delay:
+            self.lastlaunch = now
+            cannonball = CannonBall(self.rect.x, self.rect.y)
+            cannonball.rect.x = trex.rect.x
+            cannonball.rect.y = trex.rect.y - 10
+            all_sprites.add(cannonball)
+            cannons.add(cannonball)
+
+
+class CannonBall(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.pos = vec(WIDTH / 2, 0)
+        self.vel = vec(0, 0)
+        self.acc = vec(0, 0)
+        self.distance_above_player = 1
+        self.speed = 5
+        self.image = pygame.image.load("lvl3graphics/missile.png")
+        self.rect = pygame.Rect(x, y, 80, 80)
+        self.time = pygame.time.get_ticks()
+        self.deathdelay = 5000
+    def pos_towards_player(self, player_rect):
+        player = Player()
+        c = math.sqrt((player_rect.x - self.rect.x) ** 2 + (player_rect.y - self.distance_above_player - self.rect.y) ** 2)
+        try:
+            x = (player_rect.x - self.rect.x) / c
+            y = ((player_rect.y - self.distance_above_player) - self.rect.y) / c
+        except ZeroDivisionError:
+            return False
+        return (x, y)
+    def update(self):
+        self.acc = vec(0, GRAVITY)
+        self.acc.x += self.vel.x * FRICTION
+        self.vel += self.acc
+        self.pos += self.vel + 0.5 * self.acc
+        new_pos = self.pos_towards_player(player.rect)
+        if new_pos:
+            self.rect.x, self.rect.y = (self.rect.x + new_pos[0] * self.speed, self.rect.y +
+            new_pos[1] * self.speed)
+        now = pygame.time.get_ticks()
+        if now - self.time > self.deathdelay:
+            self.kill()
+            self.time = now
 class Meteor(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -322,6 +421,21 @@ class ScrollBackground(pygame.sprite.Sprite):
             self.index = 0
         self.image = self.images[self.index]
 
+class VolcanoAnimate(pygame.sprite.Sprite):
+    def __init__(self):
+        super(VolcanoAnimate, self).__init__()
+        self.images = []
+        for i in range(1, 17):
+            self.images.append(pygame.image.load('volcanoscroll/volcano' + str(i) + '.png'))
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = pygame.Rect(0, 0, 800, 680)
+    def update(self):
+        self.index += 1
+        if self.index >= len(self.images):
+            self.index = 0
+        self.image = self.images[self.index]
+
 class Explosion(pygame.sprite.Sprite):
     def __init__(self, center, size):
         pygame.sprite.Sprite.__init__(self)
@@ -345,9 +459,32 @@ class Explosion(pygame.sprite.Sprite):
             self.rect = self.image.get_rect()
             self.rect.center = center
 
+class DeathBall(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((150, 196))
+        self.image = pygame.image.load("lvl3graphics/finalkillball.png")
+        self.rect = self.image.get_rect()
+        self.rect.x = WIDTH / 2
+        self.rect.y = 0
+        self.speed = 3
+    def update(self):
+        self.rect.y += self.speed
+
+class DeathNote(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((298, 90))
+        self.image = pygame.image.load("deathsg.png")
+        self.rect = self.image.get_rect()
+        self.rect.x = WIDTH / 2
+        self.rect.y = 10
+
 #Background Sprite
 scroll_background = ScrollBackground()
 scrolls = pygame.sprite.Group(scroll_background)
+volcano_animation = VolcanoAnimate()
+volcanos = pygame.sprite.Group(volcano_animation)
 clock = pygame.time.Clock()
 
 
@@ -366,7 +503,7 @@ def start_screen():
             scrolls.update()
             scrolls.draw(screen)
             draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
-            draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+            draw_text(screen, "WASD to move, Space to shoot, E to switch direction, F to punch", 18, WIDTH / 2, HEIGHT / 2)
             draw_text(screen, "Level One", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
             draw_text(screen, "Press Enter to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
             pygame.display.flip()
@@ -389,7 +526,7 @@ def level_2start():
         clock.tick(FPS)
         screen.blit(start2, [0, 0])
         draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
-        draw_text(screen, "WASD to move, Space to shoot, E to switch direction", 22, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "WASD to move, Space to shoot, E to switch direction, F to punch", 18, WIDTH / 2, HEIGHT / 2)
         draw_text(screen, "Level Two", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
         draw_text(screen, "Press Enter to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
         pygame.display.flip()
@@ -401,6 +538,38 @@ def level_2start():
                     propt = False
                     screen.blit(lev2, [0, 0])
                     pygame.display.flip()
+
+#Boss Start Screen
+def boss_start():
+    pygame.mixer.music.stop()
+    pygame.display.flip()
+    pygame.mixer.init()
+    pygame.mixer.music.load("boss.mp3")
+    pygame.mixer.music.play(-1, 0)
+    prot = True
+    while prot:
+        clock.tick(15)
+        volcanos.update()
+        volcanos.draw(screen)
+        draw_text(screen, "Platformer", 48, WIDTH / 2, HEIGHT / 4)
+        draw_text(screen, "WASD to move, Space to shoot, E to switch direction, F to punch", 18, WIDTH / 2, HEIGHT / 2)
+        draw_text(screen, "Boss Level", 20, WIDTH / 2, HEIGHT * 2 / 3 - 50)
+        draw_text(screen, "Press Enter to start", 18, WIDTH / 2, HEIGHT * 3 / 4)
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    prot = False
+                    screen.blit(bosslvl, [0, 0])
+                    pygame.display.flip()
+
+#Spare Images
+bg = pygame.image.load("Backofground.png")
+start2 = pygame.image.load("desert.jpg")
+lev2 = pygame.image.load("desertback.png")
+bosslvl = pygame.image.load("lvl3graphics/bossback.png")
 
     
 #Sounds and Background
@@ -424,8 +593,12 @@ while running:
         bullets = pygame.sprite.Group()
         grounds = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
+        trexs = pygame.sprite.Group()
         meteors = pygame.sprite.Group()
+        dinos = pygame.sprite.Group()
         fists = pygame.sprite.Group()
+        cannons = pygame.sprite.Group()
+        deaths = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         for plat in PLATFORMS:
@@ -441,7 +614,8 @@ while running:
             all_sprites.add(g)
             grounds.add(g)
         score = 0
-    if (score > 6) and (CurrentLevel == 1):
+    if (score > 12) and (CurrentLevel == 1):
+        score = 0
         CurrentLevel += 1
         level_2start()
         game_over = False
@@ -450,9 +624,12 @@ while running:
         grounds = pygame.sprite.Group()
         bullets = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
+        trexs = pygame.sprite.Group()
         meteors = pygame.sprite.Group()
         dinos = pygame.sprite.Group()
         fists = pygame.sprite.Group()
+        cannons = pygame.sprite.Group()
+        deaths = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         for plat in PLATDORMS:
@@ -471,16 +648,20 @@ while running:
         all_sprites.add(d)
         dinos.add(d)
     if (game_over) and (CurrentLevel == 2):
+        score = 0
         level_2start()
         game_over = False
         all_sprites = pygame.sprite.Group()
         platforms = pygame.sprite.Group()
         grounds = pygame.sprite.Group()
         bullets = pygame.sprite.Group()
+        trexs = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
         meteors = pygame.sprite.Group()
         fists = pygame.sprite.Group()
         dinos = pygame.sprite.Group()
+        cannons = pygame.sprite.Group()
+        deaths = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         for plat in PLATDORMS:
@@ -498,8 +679,73 @@ while running:
         d = Dino()
         all_sprites.add(d)
         dinos.add(d)
-        score = 0
+        hits = pygame.sprite.spritecollide(player, dinos, True)
+        if hits:
+            game_over = True
 
+        hits = pygame.sprite.groupcollide(bullets, dinos, True, False)
+        score = 0
+    if (score > 12) and (CurrentLevel == 2):
+        score = 0
+        CurrentLevel += 1
+        boss_start()
+        game_over = False
+        all_sprites = pygame.sprite.Group()
+        platforms = pygame.sprite.Group()
+        grounds = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        trexs = pygame.sprite.Group()
+        meteors = pygame.sprite.Group()
+        fists = pygame.sprite.Group()
+        dinos = pygame.sprite.Group()
+        cannons = pygame.sprite.Group()  
+        deaths = pygame.sprite.Group()
+        notes = pygame.sprite.Group() 
+        player = Player()
+        all_sprites.add(player)
+        for gro in GROUNDS:
+            g = Ground(*gro)
+            all_sprites.add(g)
+            grounds.add(g)
+        for plat in PLATHORMS:
+            p = Platform(*plat)
+            all_sprites.add(p)
+            platforms.add(p)
+        trex = TRex()
+        all_sprites.add(trex)
+        trexs.add(trex)
+        hits = pygame.sprite.groupcollide(cannons, platforms, True, False)
+    if (game_over) and (CurrentLevel == 3):
+        score = 0
+        boss_start()
+        game_over = False
+        all_sprites = pygame.sprite.Group()
+        platforms = pygame.sprite.Group()
+        grounds = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        trexs = pygame.sprite.Group()
+        meteors = pygame.sprite.Group()
+        fists = pygame.sprite.Group()
+        dinos = pygame.sprite.Group()
+        cannons = pygame.sprite.Group()
+        deaths = pygame.sprite.Group()
+        notes = pygame.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        for gro in GROUNDS:
+            g = Ground(*gro)
+            all_sprites.add(g)
+            grounds.add(g)
+        for plat in PLATHORMS:
+            p = Platform(*plat)
+            all_sprites.add(p)
+            platforms.add(p)
+        trex = TRex()
+        all_sprites.add(trex)
+        trexs.add(trex)
+            
     clock.tick(FPS)
     #Keypresses
     leftRight = 0
@@ -522,6 +768,15 @@ while running:
         r = Meteor()
         all_sprites.add(r)
         meteors.add(r)
+
+    if (CurrentLevel == 3) and (score == 50):
+        deathball = DeathBall()
+        all_sprites.add(deathball)
+        deaths.add(deathball)
+        note = DeathNote()
+        all_sprites.add(note)
+        notes.add(note)
+
 
     all_sprites.update()
 
@@ -566,13 +821,40 @@ while running:
         all_sprites.add(m)
         all_sprites.update()
         mobs.add(m)
+    
+    hits = pygame.sprite.spritecollide(player, dinos, True)
+    if hits:
+        game_over = True
 
+    hits = pygame.sprite.groupcollide(bullets, dinos, True, False)
+
+    #hits = pygame.sprite.groupcollide(cannons, platforms, True, False)
+
+    hits = pygame.sprite.spritecollide(player, trexs, True)
+    if hits:
+        game_over = True
+    
+    hits = pygame.sprite.spritecollide(player, cannons, True, False)
+    if hits:
+        game_over = True
+
+    hits = pygame.sprite.groupcollide(bullets, cannons, True, True)
+
+    hits = pygame.sprite.groupcollide(bullets, trexs, True, False)
+    for hit in hits:
+        score += 1
+
+    hits = pygame.sprite.groupcollide(deaths, grounds, True, True)
+    if hits:
+        pygame.quit()
 
     screen.fill(WHITE)
     if CurrentLevel == 1:
         screen.blit(bg, [0, 0])
     if CurrentLevel == 2:
         screen.blit(lev2, [0, 0])
+    if CurrentLevel == 3:
+        screen.blit(bosslvl, [0, 0])
     all_sprites.draw(screen)
     draw_text(screen, str(score), 50, WIDTH / 2, 10)
     pygame.display.flip()

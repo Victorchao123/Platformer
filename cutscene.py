@@ -88,7 +88,7 @@ class Player(pygame.sprite.Sprite):
         if self.rect.x < WIDTH / 2:
             whitebox = pygame.image.load("whitebox.jpg").convert_alpha()
             screen.blit(whitebox, [WIDTH / 4 + 50, HEIGHT / 4 - 130])
-            draw_text(screen, "Where am I?", 30, WIDTH / 4 + 190, HEIGHT / 4 - 100)
+            draw_text(screen, "IT IS COMING!!!", 30, WIDTH / 4 + 190, HEIGHT / 4 - 100)
 
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, w, h):
